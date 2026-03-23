@@ -1,0 +1,2 @@
+ALTER TABLE all_items
+ALTER COLUMN item_id TYPE BIGINT;

@@ -1,0 +1,46 @@
+volumes:
+  pg_test:
+
+services:
+  test_db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: test_db
+    volumes:
+      - pg_test:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5433:5432"
+
+  backend:
+    build: .
+    env_file:
+      - configFile.env
+    restart: always
+    depends_on:
+      - test_db
+      - redis
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://test_db:5432/test_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+    ports:
+      - "8080:8080"
+
+  frontend:
+#    image: sansha1n12/eve-frontend:1.1.0
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+  redis:
+    image: redis:7
+    restart: always
+    ports:
+      - "6379:6379"
