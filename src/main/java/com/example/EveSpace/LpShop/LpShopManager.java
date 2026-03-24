@@ -36,15 +36,30 @@ public class LpShopManager {
         this.objectMapper = objectMapper;
     }
 
-    public String get_rest_redis(long corporation_id) {
-        String answer = redisCache.getJson(corporation_id);
-        if (answer == null || answer.isBlank()) {
+    public String get_rest_redis(long corporationId) {
+        String cached = redisCache.getJson(corporationId);
+        if (cached != null && !cached.isBlank()) {
+            return cached;
+        }
+
+        List<ResponseLpShopDTO> offers = dbService.getAllOffersForCardApi(corporationId);
+        if (offers == null || offers.isEmpty()) {
             throw new ResponseStatusException(
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "Data is not available yet"
+                    HttpStatus.NOT_FOUND,
+                    "Offers not found for corporation " + corporationId
             );
         }
-        return answer;
+
+        try {
+            String json = objectMapper.writeValueAsString(offers);
+            redisCache.putJson(corporationId, json);
+            return json;
+        } catch (JsonProcessingException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to serialize response"
+            );
+        }
     }
 
     public void calculate_rest_answer_for_LpShop() {
